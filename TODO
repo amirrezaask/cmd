@@ -1,6 +1,5 @@
-- Cmd
-	has a file cmd_gen.go
-	contains wiring of different commands in application
+- There should be command line tool to enable users to opt in to certain features let's say just doing code generation for models
+
 - Controllers
 	is a package for all http interactions
 	has a file called http_gen.go which is generated on each build
@@ -14,6 +13,15 @@
 	is a package that contains database abstraction codes.
 	has a file called models_gen.go which contains query builders for all models.
 
+
+- Cmd
+	has a file cmd_gen.go
+	contains wiring of different commands in application
+
+- Application
+	is a package that acts as a DI container for all dependencies.
+
 - Config
 	is a package that contains config related codes..
-	has a file config_gen.go which contains generated code to wire up config values from providers.
+	has a file config_gen.go which contains generated code to wire up config values.
+	for now let's just support os env.

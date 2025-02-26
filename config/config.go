@@ -1,4 +1,4 @@
-package config
+package infra
 
 var cfg struct {
 	MainDB    DBConfig
