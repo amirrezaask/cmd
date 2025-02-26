@@ -1,18 +1,18 @@
 package main
 
-import "heaven/pkg/appspec"
+import "x/pkg/appspec"
 
 func main() {
 	app :=
 		appspec.
 			New("CMS").
-			WithCmd().
-			WithConfig().
-			WithConfigProvider("env").
-			// WithConfigProvider("vault").
-			// WithConfigProvider("consul").
 			WithModels().
-			WithControllers()
+			WithControllers().
+			WithConfig().
+			WithCmd().
+			WithConfigProvider("env")
+	// WithConfigProvider("vault").
+	// WithConfigProvider("consul").
 
 	app.Build() // will generate necessary codes and then compile
 }

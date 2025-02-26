@@ -4,7 +4,11 @@
 - Controllers
 	is a package for all http interactions
 	has a file called http_gen.go which is generated on each build
-	and contains implementation of http.Handler for each endpoint type eg UserController
+	and contains implementation of http.Handler for each controller type eg UserController
+	each method will have binding system that has prio
+	- path param
+	- query param
+	- body
 
 - Models
 	is a package that contains database abstraction codes.
