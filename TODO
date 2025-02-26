@@ -1,0 +1,15 @@
+- Cmd
+	has a file cmd_gen.go
+	contains wiring of different commands in application
+- Controllers
+	is a package for all http interactions
+	has a file called http_gen.go which is generated on each build
+	and contains implementation of http.Handler for each endpoint type eg UserController
+
+- Models
+	is a package that contains database abstraction codes.
+	has a file called models_gen.go which contains query builders for all models.
+
+- Config
+	is a package that contains config related codes..
+	has a file config_gen.go which contains generated code to wire up config values from providers.
