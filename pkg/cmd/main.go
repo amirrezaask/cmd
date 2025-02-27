@@ -12,6 +12,6 @@ func main() {
 	flag.StringVar(&root, "root", ".", "root directory of your project.")
 
 	flag.Parse()
-	flag.Usage()
+	// flag.Usage()
 
 }

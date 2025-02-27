@@ -1,8 +1,6 @@
 package models
 
-//go:generate projectx -model $file
-
-type User struct {
+type UserModel struct {
 	ID   int64
 	Name string
 }
