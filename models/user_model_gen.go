@@ -2,79 +2,89 @@
 package models
 
 import (
-    "fmt"
-    "strings"
-    "database/sql"
+	"database/sql"
+	"fmt"
+	"strings"
 )
-	
 
-type UserModelQueryBuilder interface{
-	
-	WhereIDIs(int64) UserModelQueryBuilder
-	WhereID(operator string, rhs int64) UserModelQueryBuilder
-	
-	WhereIDGT(int64) UserModelQueryBuilder
-	WhereIDGE(int64) UserModelQueryBuilder
-	WhereIDLT(int64) UserModelQueryBuilder
-	WhereIDLE(int64) UserModelQueryBuilder 
-	
-	
-	WhereNameIs(string) UserModelQueryBuilder
-	WhereName(operator string, rhs string) UserModelQueryBuilder
-	
-	
-	
-	OrderByAsc(column UserModelColumn) UserModelQueryBuilder
-	OrderByDesc(column UserModelColumn) UserModelQueryBuilder
+type UserQueryBuilder interface {
+	WhereIDIs(int64) UserQueryBuilder
+	WhereID(operator string, rhs int64) UserQueryBuilder
 
-	Limit(int) UserModelQueryBuilder
-	Offset(int) UserModelQueryBuilder
+	WhereIDGT(int64) UserQueryBuilder
+	WhereIDGE(int64) UserQueryBuilder
+	WhereIDLT(int64) UserQueryBuilder
+	WhereIDLE(int64) UserQueryBuilder
 
-    getPlaceholder() string
-	
-	First(db *sql.DB) (UserModel, error)
-	Last(db *sql.DB) (UserModel, error)
+	WhereNameIs(string) UserQueryBuilder
+	WhereName(operator string, rhs string) UserQueryBuilder
 
-	
-	SetID(int64) UserModelQueryBuilder
-	
-	SetName(string) UserModelQueryBuilder
-	
+	OrderByAsc(column UserColumn) UserQueryBuilder
+	OrderByDesc(column UserColumn) UserQueryBuilder
+
+	Limit(int) UserQueryBuilder
+	Offset(int) UserQueryBuilder
+
+	getPlaceholder() string
+
+	First(db *sql.DB) (User, error)
+	Last(db *sql.DB) (User, error)
+
+	SetID(int64) UserQueryBuilder
+
+	SetName(string) UserQueryBuilder
 
 	Update(db *sql.DB) (sql.Result, error)
 
 	Delete(db *sql.DB) (sql.Result, error)
 
-	Fetch(db *sql.DB) ([]UserModel, error)
+	Fetch(db *sql.DB) ([]User, error)
+	FindAll(db *sql.DB) ([]User, error)
 
 	SQL() (string, error)
 }
 
-
-type _dont_use_usermodel_query_builder struct {
+type _dont_use_user_query_builder struct {
 	mode string
 
-    where UserModelWhere
+	where struct {
+		ID struct {
+			argument interface{}
+			operator string
+		}
 
-	set UserModelSet
+		Name struct {
+			argument interface{}
+			operator string
+		}
+	}
+
+	set struct {
+		ID string
+
+		Name string
+	}
 
 	orderBy []string
 	groupBy string
 
 	projected []string
 
-	limit int
+	limit  int
 	offset int
 
 	whereArgs []interface{}
-    setArgs []interface{}
+	setArgs   []interface{}
 }
 
-func UserModels() UserModelQueryBuilder {
-	return &_dont_use_usermodel_query_builder{}
+func Users() UserQueryBuilder {
+	return &_dont_use_user_query_builder{}
 }
 
-func (q *_dont_use_usermodel_query_builder) SQL() (string, error) {
+func (q *_dont_use_user_query_builder) SQL() (string, error) {
+	if q.mode == "" {
+		q.mode = "select"
+	}
 	if q.mode == "select" {
 		return q.sqlSelect()
 	} else if q.mode == "update" {
@@ -86,87 +96,75 @@ func (q *_dont_use_usermodel_query_builder) SQL() (string, error) {
 	}
 }
 
+type UserColumn string
 
-type UserModelColumn string 
-
-var UserModelColumns = struct {
-	 ID UserModelColumn 
-	 Name UserModelColumn 
-	
+var UserColumns = struct {
+	ID   UserColumn
+	Name UserColumn
 }{
-	 ID: UserModelColumn("id"), 
-	 Name: UserModelColumn("name"), 
-	
+	ID:   UserColumn("id"),
+	Name: UserColumn("name"),
 }
 
-
-func (q *_dont_use_usermodel_query_builder) getPlaceholder() string {
+func (q *_dont_use_user_query_builder) getPlaceholder() string {
 	return "?"
 }
 
-
-
-
-
-func (q *_dont_use_usermodel_query_builder) Limit(l int) UserModelQueryBuilder {
+func (q *_dont_use_user_query_builder) Limit(l int) UserQueryBuilder {
 	q.mode = "select"
-	q.limit = l	
+	q.limit = l
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) Offset(l int) UserModelQueryBuilder {
+func (q *_dont_use_user_query_builder) Offset(l int) UserQueryBuilder {
 	q.mode = "select"
 	q.offset = l
 	return q
 }
 
-
-func (q UserModel) Values() []interface{} {
-    var values []interface{}
+func (q User) Values() []interface{} {
+	var values []interface{}
 	values = append(values, &q.ID)
 	values = append(values, &q.Name)
-	
-    return values
+
+	return values
 }
 
+func UsersFromRows(rows *sql.Rows) ([]User, error) {
+	var Users []User
+	for rows.Next() {
+		var m User
+		err := rows.Scan(
 
-func UserModelsFromRows(rows *sql.Rows) ([]UserModel, error) {
-    var UserModels []UserModel
-    for rows.Next() {
-        var m UserModel
-        err := rows.Scan(
-            
-            &m.ID,
-            
-            &m.Name,
-            
-        )
-        if err != nil {
-            return nil, err
-        }
-        UserModels = append(UserModels, m)
-    }
-    return UserModels, nil
+			&m.ID,
+
+			&m.Name,
+		)
+		if err != nil {
+			return nil, err
+		}
+		Users = append(Users, m)
+	}
+	return Users, nil
 }
 
-func UserModelFromRow(row *sql.Row) (UserModel, error) {
-    if row.Err() != nil {
-        return UserModel{}, row.Err()
-    }
-    var q UserModel
-    err := row.Scan(
-        &q.ID,
-        &q.Name,
-        
-    )
-    if err != nil {
-        return UserModel{}, err
-    }
+func UserFromRow(row *sql.Row) (User, error) {
+	if row.Err() != nil {
+		return User{}, row.Err()
+	}
+	var q User
+	err := row.Scan(
+		&q.ID,
+		&q.Name,
+	)
+	if err != nil {
+		return User{}, err
+	}
 
-    return q, nil
+	return q, nil
 }
 
-func (q *_dont_use_usermodel_query_builder) Update(db *sql.DB) (sql.Result, error) {
+func (q *_dont_use_user_query_builder) Update(db *sql.DB) (sql.Result, error) {
 	q.mode = "update"
 	args := append(q.setArgs, q.whereArgs...)
 	query, err := q.SQL()
@@ -176,7 +174,7 @@ func (q *_dont_use_usermodel_query_builder) Update(db *sql.DB) (sql.Result, erro
 	return db.Exec(query, args...)
 }
 
-func (q *_dont_use_usermodel_query_builder) Delete(db *sql.DB) (sql.Result, error) {
+func (q *_dont_use_user_query_builder) Delete(db *sql.DB) (sql.Result, error) {
 	q.mode = "delete"
 	query, err := q.SQL()
 	if err != nil {
@@ -185,7 +183,7 @@ func (q *_dont_use_usermodel_query_builder) Delete(db *sql.DB) (sql.Result, erro
 	return db.Exec(query, q.whereArgs...)
 }
 
-func (q *_dont_use_usermodel_query_builder) Fetch(db *sql.DB) ([]UserModel, error) {
+func (q *_dont_use_user_query_builder) Fetch(db *sql.DB) ([]User, error) {
 	q.mode = "select"
 	query, err := q.SQL()
 	if err != nil {
@@ -195,68 +193,71 @@ func (q *_dont_use_usermodel_query_builder) Fetch(db *sql.DB) ([]UserModel, erro
 	if err != nil {
 		return nil, err
 	}
-	return UserModelsFromRows(rows)
+	return UsersFromRows(rows)
 }
 
-func (q *_dont_use_usermodel_query_builder) First(db *sql.DB) (UserModel, error) {
+func (q *_dont_use_user_query_builder) FindAll(db *sql.DB) ([]User, error) {
+	return q.Fetch(db)
+}
+
+func (q *_dont_use_user_query_builder) First(db *sql.DB) (User, error) {
 	q.mode = "select"
 	q.orderBy = []string{"ORDER BY id ASC"}
 	q.Limit(1)
 	query, err := q.SQL()
 	if err != nil {
-		return UserModel{}, err
+		return User{}, err
 	}
 	row := db.QueryRow(query, q.whereArgs...)
 	if row.Err() != nil {
-		return UserModel{}, row.Err()
+		return User{}, row.Err()
 	}
-	return UserModelFromRow(row)
+	return UserFromRow(row)
 }
 
-
-func (q *_dont_use_usermodel_query_builder) Last(db *sql.DB) (UserModel, error) {
+func (q *_dont_use_user_query_builder) Last(db *sql.DB) (User, error) {
 	q.mode = "select"
 	q.orderBy = []string{"ORDER BY id DESC"}
 	q.Limit(1)
 	query, err := q.SQL()
 	if err != nil {
-		return UserModel{}, err
+		return User{}, err
 	}
 	row := db.QueryRow(query, q.whereArgs...)
 	if row.Err() != nil {
-		return UserModel{}, row.Err()
+		return User{}, row.Err()
 	}
-	return UserModelFromRow(row)
+	return UserFromRow(row)
 }
 
-func (q *_dont_use_usermodel_query_builder) OrderByAsc(column UserModelColumn) UserModelQueryBuilder {
-    q.mode = "select"
+func (q *_dont_use_user_query_builder) OrderByAsc(column UserColumn) UserQueryBuilder {
+	q.mode = "select"
 	q.orderBy = append(q.orderBy, fmt.Sprintf("%s ASC", string(column)))
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) OrderByDesc(column UserModelColumn) UserModelQueryBuilder {
-    q.mode = "select"
+func (q *_dont_use_user_query_builder) OrderByDesc(column UserColumn) UserQueryBuilder {
+	q.mode = "select"
 	q.orderBy = append(q.orderBy, fmt.Sprintf("%s DESC", string(column)))
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) sqlSelect() (string, error) {
+func (q *_dont_use_user_query_builder) sqlSelect() (string, error) {
 	if q.projected == nil {
 		q.projected = append(q.projected, "*")
 	}
-	base := fmt.Sprintf("SELECT %s FROM user_models", strings.Join(q.projected, ", "))
+	base := fmt.Sprintf("SELECT %s FROM users", strings.Join(q.projected, ", "))
 
-	var wheres []string 
-	
+	var wheres []string
+
 	if q.where.ID.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "id", q.where.ID.operator, fmt.Sprint(q.where.ID.argument)))
 	}
-	
+
 	if q.where.Name.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "name", q.where.Name.operator, fmt.Sprint(q.where.Name.argument)))
 	}
-	
+
 	if len(wheres) > 0 {
 		base += " WHERE " + strings.Join(wheres, " AND ")
 	}
@@ -274,28 +275,25 @@ func (q *_dont_use_usermodel_query_builder) sqlSelect() (string, error) {
 	return base, nil
 }
 
+func (q *_dont_use_user_query_builder) sqlUpdate() (string, error) {
+	base := fmt.Sprintf("UPDATE users ")
 
-func (q *_dont_use_usermodel_query_builder) sqlUpdate() (string, error) {
-	base := fmt.Sprintf("UPDATE user_models ")
+	var wheres []string
+	var sets []string
 
-	var wheres []string 
-    var sets []string 
-
-    
 	if q.where.ID.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "id", q.where.ID.operator, fmt.Sprint(q.where.ID.argument)))
 	}
 	if q.set.ID != "" {
 		sets = append(sets, fmt.Sprintf("%s = %s", "id", fmt.Sprint(q.set.ID)))
 	}
-    
+
 	if q.where.Name.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "name", q.where.Name.operator, fmt.Sprint(q.where.Name.argument)))
 	}
 	if q.set.Name != "" {
 		sets = append(sets, fmt.Sprintf("%s = %s", "name", fmt.Sprint(q.set.Name)))
 	}
-    
 
 	if len(sets) > 0 {
 		base += "SET " + strings.Join(sets, " , ")
@@ -305,24 +303,22 @@ func (q *_dont_use_usermodel_query_builder) sqlUpdate() (string, error) {
 		base += " WHERE " + strings.Join(wheres, " AND ")
 	}
 
-	
-
 	return base, nil
 }
 
-func (q *_dont_use_usermodel_query_builder) sqlDelete() (string, error) {
-    base := fmt.Sprintf("DELETE FROM user_models")
+func (q *_dont_use_user_query_builder) sqlDelete() (string, error) {
+	base := fmt.Sprintf("DELETE FROM users")
 
-	var wheres []string 
-	
+	var wheres []string
+
 	if q.where.ID.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "id", q.where.ID.operator, fmt.Sprint(q.where.ID.argument)))
 	}
-	
+
 	if q.where.Name.operator != "" {
 		wheres = append(wheres, fmt.Sprintf("%s %s %s", "name", q.where.Name.operator, fmt.Sprint(q.where.Name.argument)))
 	}
-	
+
 	if len(wheres) > 0 {
 		base += " WHERE " + strings.Join(wheres, " AND ")
 	}
@@ -330,107 +326,72 @@ func (q *_dont_use_usermodel_query_builder) sqlDelete() (string, error) {
 	return base, nil
 }
 
-
-
-func (q *_dont_use_usermodel_query_builder) WhereIDGE(ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = ">="
+func (q *_dont_use_user_query_builder) WhereIDGE(ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = ">="
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) WhereIDGT(ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = ">"
+func (q *_dont_use_user_query_builder) WhereIDGT(ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = ">"
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) WhereIDLE(ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = "<="
+func (q *_dont_use_user_query_builder) WhereIDLE(ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = "<="
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) WhereIDLT(ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = "<"
+func (q *_dont_use_user_query_builder) WhereIDLT(ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = "<"
 	return q
 }
 
-
-
-
-
-
-
-
-
-type UserModelWhere struct {
-	
-	ID struct {
-        argument interface{}
-        operator string
-    }
-	
-	Name struct {
-        argument interface{}
-        operator string
-    }
-	
-}
-
-
-func (q *_dont_use_usermodel_query_builder) WhereID(operator string, ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = operator
-	return q
-}
-	
-func (q *_dont_use_usermodel_query_builder) WhereIDIs(ID int64) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, ID)
-    q.where.ID.argument = q.getPlaceholder()
-    q.where.ID.operator = "="
+func (q *_dont_use_user_query_builder) WhereID(operator string, ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = operator
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) WhereName(operator string, Name string) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, Name)
-    q.where.Name.argument = q.getPlaceholder()
-    q.where.Name.operator = operator
-	return q
-}
-	
-func (q *_dont_use_usermodel_query_builder) WhereNameIs(Name string) UserModelQueryBuilder {
-    q.whereArgs = append(q.whereArgs, Name)
-    q.where.Name.argument = q.getPlaceholder()
-    q.where.Name.operator = "="
+func (q *_dont_use_user_query_builder) WhereIDIs(ID int64) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, ID)
+	q.where.ID.argument = q.getPlaceholder()
+	q.where.ID.operator = "="
 	return q
 }
 
-
-type UserModelSet struct {
-	
-	ID string
-    
-	Name string
-    
+func (q *_dont_use_user_query_builder) WhereName(operator string, Name string) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, Name)
+	q.where.Name.argument = q.getPlaceholder()
+	q.where.Name.operator = operator
+	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) SetID(ID int64) UserModelQueryBuilder {
+func (q *_dont_use_user_query_builder) WhereNameIs(Name string) UserQueryBuilder {
+	q.whereArgs = append(q.whereArgs, Name)
+	q.where.Name.argument = q.getPlaceholder()
+	q.where.Name.operator = "="
+	return q
+}
+
+func (q *_dont_use_user_query_builder) SetID(ID int64) UserQueryBuilder {
 	q.mode = "update"
-    q.setArgs = append(q.setArgs, ID)
+	q.setArgs = append(q.setArgs, ID)
 	q.set.ID = q.getPlaceholder()
 	return q
 }
 
-func (q *_dont_use_usermodel_query_builder) SetName(Name string) UserModelQueryBuilder {
+func (q *_dont_use_user_query_builder) SetName(Name string) UserQueryBuilder {
 	q.mode = "update"
-    q.setArgs = append(q.setArgs, Name)
+	q.setArgs = append(q.setArgs, Name)
 	q.set.Name = q.getPlaceholder()
 	return q
 }
-

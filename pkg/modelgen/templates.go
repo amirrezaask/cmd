@@ -68,6 +68,7 @@ type {{.QueryBuilderInterfaceName}} interface{
 	Delete(db *sql.DB) (sql.Result, error)
 
 	Fetch(db *sql.DB) ([]{{ $.ModelName }}, error)
+	FindAll(db *sql.DB) ([]{{ $.ModelName }}, error)
 
 	SQL() (string, error)
 }
@@ -76,9 +77,20 @@ type {{.QueryBuilderInterfaceName}} interface{
 type {{ .QueryBuilderStructName }} struct {
 	mode string
 
-    where {{ .ModelName }}Where
+    where struct {
+	{{ range .Fields }}
+		{{.Name}} struct {
+      	  argument interface{}
+          operator string
+    	}
+	{{ end }}
+	}
 
-	set {{ .ModelName }}Set
+	set struct {
+	{{ range .Fields }}
+		{{.Name }} string
+    {{ end }}
+	}
 
 	orderBy []string
 	groupBy string
@@ -91,12 +103,14 @@ type {{ .QueryBuilderStructName }} struct {
 	whereArgs []interface{}
     setArgs []interface{}
 }
+	
 
 func {{.ModelName}}s() {{ .QueryBuilderInterfaceName }} {
 	return &{{ .QueryBuilderStructName }}{}
 }
 
 func (q *{{.QueryBuilderStructName}}) SQL() (string, error) {
+	if q.mode == "" { q.mode = "select" }
 	if q.mode == "select" {
 		return q.sqlSelect()
 	} else if q.mode == "update" {
@@ -218,6 +232,10 @@ func (q *{{.QueryBuilderStructName}}) Fetch(db *sql.DB) ([]{{ .ModelName }}, err
 		return nil, err
 	}
 	return {{ .ModelName }}sFromRows(rows)
+}
+
+func (q *{{.QueryBuilderStructName}}) FindAll(db *sql.DB) ([]{{ .ModelName }}, error) {
+	return q.Fetch(db)
 }
 
 func (q *{{.QueryBuilderStructName}}) First(db *sql.DB) ({{ .ModelName }}, error) {
@@ -372,16 +390,6 @@ func (q *{{ $.QueryBuilderStructName}}) Where{{.Name }}LT({{.Name }} {{.Type}}) 
 {{ end }}
 
 
-
-type {{ .ModelName }}Where struct {
-	{{ range .Fields }}
-	{{.Name}} struct {
-        argument interface{}
-        operator string
-    }
-	{{ end }}
-}
-
 {{ range .Fields }}
 func (q *{{ $.QueryBuilderStructName}}) Where{{.Name }}(operator string, {{.Name }} {{.Type}}) {{$.QueryBuilderInterfaceName}} {
     q.whereArgs = append(q.whereArgs, {{.Name }})
@@ -389,7 +397,7 @@ func (q *{{ $.QueryBuilderStructName}}) Where{{.Name }}(operator string, {{.Name
     q.where.{{.Name }}.operator = operator
 	return q
 }
-	
+
 func (q *{{ $.QueryBuilderStructName }}) Where{{.Name}}Is({{ .Name }} {{ .Type }}) {{ $.QueryBuilderInterfaceName }} {
     q.whereArgs = append(q.whereArgs, {{.Name}})
     q.where.{{.Name}}.argument = q.getPlaceholder()
@@ -398,11 +406,6 @@ func (q *{{ $.QueryBuilderStructName }}) Where{{.Name}}Is({{ .Name }} {{ .Type }
 }
 {{ end }}
 
-type {{ .ModelName }}Set struct {
-	{{ range .Fields }}
-	{{.Name }} string
-    {{ end }}
-}
 {{ range .Fields }}
 func (q *{{ $.QueryBuilderStructName }}) Set{{ .Name }}({{ .Name }} {{ .Type }}) {{ $.QueryBuilderInterfaceName }} {
 	q.mode = "update"

@@ -1,6 +1,7 @@
 package models
 
-type UserModel struct {
+// @querybuilder
+type User struct {
 	ID   int64
 	Name string
 }

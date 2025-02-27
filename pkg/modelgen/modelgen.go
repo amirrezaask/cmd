@@ -1,8 +1,10 @@
 package modelgen
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -64,7 +66,7 @@ func resolveTypes(structDecl *ast.StructType) []structField {
 
 func generateForStruct(dialect string, pkg string, name string, structDecl *ast.StructType) string {
 	fields := resolveTypes(structDecl)
-	var buff strings.Builder
+	var buff bytes.Buffer
 	// if strings.Contains(strings.ToLower(name), "model") {
 	// 	name = strings.Replace(strings.ToLower(name), "model", "", -1)
 	// 	name = strcase.ToCamel(name)
@@ -84,7 +86,12 @@ func generateForStruct(dialect string, pkg string, name string, structDecl *ast.
 		panic(err)
 	}
 
-	return buff.String()
+	out, err := format.Source(buff.Bytes())
+	if err != nil {
+		return buff.String()
+	}
+
+	return string(out)
 }
 
 func generateForFile(dialect string, filePath string) {
