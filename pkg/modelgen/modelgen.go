@@ -65,18 +65,23 @@ func resolveTypes(structDecl *ast.StructType) []structField {
 func generateForStruct(dialect string, pkg string, name string, structDecl *ast.StructType) string {
 	fields := resolveTypes(structDecl)
 	var buff strings.Builder
+	// if strings.Contains(strings.ToLower(name), "model") {
+	// 	name = strings.Replace(strings.ToLower(name), "model", "", -1)
+	// 	name = strcase.ToCamel(name)
+	// }
 	td := templateData{
-		ModelName: name,
-		Fields:    fields,
-		Pkg:       pkg,
-		Dialect:   dialect,
-		TableName: strcase.ToSnake(pluralize.NewClient().Plural(name)),
+		ModelName:                 name,
+		QueryBuilderStructName:    fmt.Sprintf("_dont_use_%s_query_builder", strings.ToLower(name)),
+		QueryBuilderInterfaceName: name + "QueryBuilder",
+		Fields:                    fields,
+		Pkg:                       pkg,
+		Dialect:                   dialect,
+		TableName:                 strcase.ToSnake(pluralize.NewClient().Plural(name)),
 	}
 
-	for _, t := range queryBuilderTemplates {
-		if err := t.Execute(&buff, td); err != nil {
-			panic(err)
-		}
+	err := tmpl.Execute(&buff, td)
+	if err != nil {
+		panic(err)
 	}
 
 	return buff.String()
@@ -110,6 +115,8 @@ func generateForFile(dialect string, filePath string) {
 		}
 	}(outputFile)
 
+	var notEmpty bool
+
 	for _, decl := range fileAst.Decls {
 		if _, ok := decl.(*ast.GenDecl); ok {
 
@@ -130,12 +137,20 @@ func generateForFile(dialect string, filePath string) {
 
 			if strings.Contains(typeSpec.Name.Name, "Model") || (len(declComment) > 0 && declComment[:len(ModelAnnotation)] == ModelAnnotation) {
 				output := generateForStruct(dialect, fileAst.Name.String(), typeSpec.Name.Name, structType)
+				if output == "" {
+					continue
+				}
+
+				notEmpty = true
 				_, err := fmt.Fprint(outputFile, output)
 				if err != nil {
 					panic(err)
 				}
 			}
 		}
+	}
+	if !notEmpty {
+		os.Remove(outputFilePath)
 	}
 }
 
