@@ -60,6 +60,7 @@ func generateForFile(dialect string, filePath string) {
 		if !ok {
 			continue
 		}
+
 	}
 	if !notEmpty {
 		os.Remove(outputFilePath)
