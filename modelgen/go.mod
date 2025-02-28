@@ -1,4 +1,4 @@
-module x
+module github.com/amirrezaask/cmd/modelgen
 
 go 1.23.0
 

@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -26,76 +24,6 @@ func main() {
 }
 
 const ModelAnnotation = "@httphandler"
-
-type structField struct {
-	Name         string
-	Type         string
-	IsComparable bool
-	IsNullable   bool
-	Tag          string
-}
-
-func (s structField) String() string {
-	return s.Name
-}
-
-func isComparable(typeExpr ast.Expr) bool {
-	switch t := typeExpr.(type) {
-	case *ast.Ident:
-		if t.Obj == nil {
-			// it's a primitive go type
-			if t.Name == "int" || t.Name == "int8" || t.Name == "int16" || t.Name == "int32" || t.Name == "int64" ||
-				t.Name == "uint" || t.Name == "uint8" || t.Name == "uint16" || t.Name == "uint32" || t.Name == "uint64" ||
-				t.Name == "float32" || t.Name == "float64" {
-				return true
-			}
-			return false
-		}
-	}
-	return false
-}
-
-func resolveTypes(structDecl *ast.StructType) []structField {
-	var fields []structField
-	for _, field := range structDecl.Fields.List {
-		for _, name := range field.Names {
-			sf := structField{
-				Name:         name.Name,
-				Type:         fmt.Sprint(field.Type),
-				IsComparable: isComparable(field.Type),
-				IsNullable:   false, // TODO: fix this
-			}
-			if field.Tag != nil {
-				sf.Tag = field.Tag.Value
-			}
-			fields = append(fields, sf)
-		}
-	}
-	return fields
-}
-
-func generateForStruct(dialect string, pkg string, name string, structDecl *ast.StructType) string {
-	var buff bytes.Buffer
-	// if strings.Contains(strings.ToLower(name), "model") {
-	// 	name = strings.Replace(strings.ToLower(name), "model", "", -1)
-	// 	name = strcase.ToCamel(name)
-	// }
-	td := templateData{
-		Pkg: pkg,
-	}
-
-	err := tmpl.Execute(&buff, td)
-	if err != nil {
-		panic(err)
-	}
-
-	out, err := format.Source(buff.Bytes())
-	if err != nil {
-		return buff.String()
-	}
-
-	return string(out)
-}
 
 func generateForFile(dialect string, filePath string) {
 	inputFilePath, err := filepath.Abs(filePath)
@@ -128,35 +56,9 @@ func generateForFile(dialect string, filePath string) {
 	var notEmpty bool
 
 	for _, decl := range fileAst.Decls {
-		if _, ok := decl.(*ast.GenDecl); ok {
-
-			declComment := decl.(*ast.GenDecl).Doc.Text()
-			// Ensure the GenDecl contains a TypeSpec
-			if len(decl.(*ast.GenDecl).Specs) == 0 {
-				continue
-			}
-
-			typeSpec, ok := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			structType, ok := typeSpec.Type.(*ast.StructType)
-			if !ok {
-				continue
-			}
-
-			if strings.Contains(typeSpec.Name.Name, "Model") || (len(declComment) > 0 && declComment[:len(ModelAnnotation)] == ModelAnnotation) {
-				output := generateForStruct(dialect, fileAst.Name.String(), typeSpec.Name.Name, structType)
-				if output == "" {
-					continue
-				}
-
-				notEmpty = true
-				_, err := fmt.Fprint(outputFile, output)
-				if err != nil {
-					panic(err)
-				}
-			}
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
 		}
 	}
 	if !notEmpty {
