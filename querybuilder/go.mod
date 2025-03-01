@@ -1,4 +1,4 @@
-module github.com/amirrezaask/cmd/modelgen
+module github.com/amirrezaask/gogenerate/querybuilder
 
 go 1.23.0
 

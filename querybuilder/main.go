@@ -173,7 +173,10 @@ func generateForFile(dialect string, filePath string) {
 			}
 
 			if len(codes) > 0 {
-				err = fileTemplate.Execute(outputFile, struct{ Code string }{Code: strings.Join(codes, "\n\n")})
+				err = fileTemplate.Execute(outputFile, struct {
+					Pkg  string
+					Code string
+				}{Code: strings.Join(codes, "\n\n")})
 				if err != nil {
 					panic(err)
 				}
@@ -239,10 +242,10 @@ type {{.QueryBuilderInterfaceName}} interface{
 	Where{{.Name}}Is({{.Type}}) {{$.QueryBuilderInterfaceName}}
 	Where{{.Name}}(operator string, rhs {{.Type}}) {{$.QueryBuilderInterfaceName}}
 	{{ if .IsComparable  }}
-	Where{{.Name}}GT({{ .Type }}) {{$.QueryBuilderInterfaceName}}
-	Where{{.Name}}GE({{ .Type }}) {{$.QueryBuilderInterfaceName}}
-	Where{{.Name}}LT({{ .Type }}) {{$.QueryBuilderInterfaceName}}
-	Where{{.Name}}LE({{ .Type }}) {{$.QueryBuilderInterfaceName}}
+	// Where{{.Name}}GT({{ .Type }}) {{$.QueryBuilderInterfaceName}}
+	// Where{{.Name}}GE({{ .Type }}) {{$.QueryBuilderInterfaceName}}
+	// Where{{.Name}}LT({{ .Type }}) {{$.QueryBuilderInterfaceName}}
+	// Where{{.Name}}LE({{ .Type }}) {{$.QueryBuilderInterfaceName}}
 	{{ end }}
 	{{ end }}
 

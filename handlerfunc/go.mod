@@ -1,4 +1,4 @@
-module github.com/amirrezaask/cmd/httphandlergen
+module github.com/amirrezaask/gogenerate/handlerfunc
 
 go 1.23.0
 

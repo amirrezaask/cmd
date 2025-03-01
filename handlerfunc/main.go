@@ -69,35 +69,46 @@ func generateForFile(filePath string) {
 		if !ok {
 			continue
 		}
-		if strings.Contains(funcDecl.Doc.Text(), annotation) {
-			td := templateData{
-				Pkg:         fileAst.Name.Name,
-				IsMethod:    funcDecl.Recv != nil,
-				Name:        funcDecl.Name.Name,
-				BindingType: fmt.Sprint(funcDecl.Type.Params.List[1].Type),
-			}
 
-			if funcDecl.Recv != nil {
-				t := funcDecl.Recv.List[0].Type
-				switch t := t.(type) {
-				case *ast.StarExpr:
-					td.RecvType = "*" + t.X.(*ast.Ident).Name
-				case *ast.Ident:
-					td.RecvType = t.Name
-				}
-			}
-			var buf bytes.Buffer
-			err := tmpl.Execute(&buf,
-				td,
-			)
-			if err != nil {
-				panic(err)
-			}
-
-			codes = append(codes, buf.String())
-			empty = false
-			break
+		ft := funcDecl.Type
+		if ft.Params.NumFields() != 2 {
+			fmt.Fprintf(os.Stderr, "given functions should have exactly 2 parameters not %d", ft.Params.NumFields())
+			return
 		}
+
+		if ft.Results.NumFields() != 2 {
+			fmt.Fprintf(os.Stderr, "given functions should have exactly 2 returns not %d", ft.Results.NumFields())
+			return
+		}
+		if !strings.Contains(funcDecl.Doc.Text(), annotation) {
+			continue
+		}
+		td := templateData{
+			Pkg:         fileAst.Name.Name,
+			IsMethod:    funcDecl.Recv != nil,
+			Name:        funcDecl.Name.Name,
+			BindingType: fmt.Sprint(funcDecl.Type.Params.List[1].Type),
+		}
+
+		if funcDecl.Recv != nil {
+			t := funcDecl.Recv.List[0].Type
+			switch t := t.(type) {
+			case *ast.StarExpr:
+				td.RecvType = "*" + t.X.(*ast.Ident).Name
+			case *ast.Ident:
+				td.RecvType = t.Name
+			}
+		}
+		var buf bytes.Buffer
+		err := tmpl.Execute(&buf,
+			td,
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		codes = append(codes, buf.String())
+		empty = false
 	}
 
 	if empty {

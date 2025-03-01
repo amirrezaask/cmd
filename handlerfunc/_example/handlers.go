@@ -5,14 +5,13 @@ import (
 	"net/http"
 )
 
-func _() {
-	http.Handle("/users", &UserController{})
-}
+//go:generate handlerfunc -file $GOFILE
 
 type UserController struct {
 	DB *sql.DB
 }
 
+// @handlerfunc
 func (u *UserController) index(r *http.Request, userID int64) (*models.User, error) {
 	return models.Users().Find(userID)
 }

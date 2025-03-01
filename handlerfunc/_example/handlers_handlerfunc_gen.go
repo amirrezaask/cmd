@@ -7,6 +7,24 @@ import (
 	"net/http"
 )
 
+func (r *UserController) indexHandlerFunc(w http.ResponseWriter, req *http.Request) {
+	var requestBody int64
+	err := json.NewDecoder(req.Body).Decode(&requestBody)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := r.index(req, requestBody)
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (r *UserController) createHandlerFunc(w http.ResponseWriter, req *http.Request) {
 	var requestBody newUserRequest
 	err := json.NewDecoder(req.Body).Decode(&requestBody)
