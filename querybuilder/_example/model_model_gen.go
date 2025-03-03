@@ -397,5 +397,17 @@ func (q *_dont_use_user_query_builder) SetName(Name string) UserQueryBuilder {
 	return q
 }
 
+func (q *_dont_use_user_query_builder) Add(ctx context.Context, record *User, db *sql.DB) error {
+	res, err := db.ExecContext(ctx, "INSERT INTO users (id, name) VALUES (?, ?)", record.ID, record.Name)
+	if err != nil {
+		return err
+	}
 
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	record.ID = id
+	return nil
+}
 	

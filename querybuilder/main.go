@@ -36,6 +36,7 @@ const ModelAnnotation = "@querybuilder"
 
 type structField struct {
 	Name         string
+	ColumnName   string
 	Type         string
 	IsComparable bool
 	IsNullable   bool
@@ -68,6 +69,7 @@ func resolveTypes(structDecl *ast.StructType) []structField {
 		for _, name := range field.Names {
 			sf := structField{
 				Name:         name.Name,
+				ColumnName:   strcase.ToSnake(name.Name),
 				Type:         fmt.Sprint(field.Type),
 				IsComparable: isComparable(field.Type),
 				IsNullable:   false, // TODO: fix this
@@ -210,6 +212,19 @@ var funcMap = template.FuncMap{
 	},
 	"ToLowerCamelCase": func(name string) string {
 		return strcase.ToLowerCamel(name)
+	},
+	"joinPlaceholders": func(l int, placeholder string) string {
+		return strings.Join(strings.Split(strings.Repeat(placeholder, l), ""), ", ")
+	},
+	"join": func(slice []string) string {
+		return strings.Join(slice, ", ")
+	},
+	"joinFields": func(fields []structField) string {
+		var names []string
+		for _, field := range fields {
+			names = append(names, field.ColumnName)
+		}
+		return strings.Join(names, ", ")
 	},
 }
 
@@ -615,5 +630,18 @@ func (q *{{ $.QueryBuilderStructName }}) Set{{ .Name }}({{ .Name }} {{ .Type }})
 	return q
 }
 {{ end }}
-`,
+
+func (q *{{ $.QueryBuilderStructName }}) Add(ctx context.Context, record *{{ $.ModelName }}, db *sql.DB) error {
+	res, err := db.ExecContext(ctx, "INSERT INTO {{ $.TableName }} ({{joinFields .Fields}}) VALUES ({{joinPlaceholders (len .Fields) "?"}})", {{ range .Fields }}record.{{ .Name }},{{ end }})
+	if err != nil {
+		return err 
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	record.ID = id
+	return nil
+}`,
 ))
